@@ -23,7 +23,7 @@ amcl:
     odom_frame_id: "odom"
     pf_err: 0.05
     pf_z: 0.99
-    recovery_alpha_fast: 0.0      - nav2_are_error_codes_active_condition_bt_node
+    recovery_alpha_fast: 0.0      - nav2_are_error_codes_present_condition_bt_node
       - nav2_would_a_controller_recovery_help_condition_bt_node
       - nav2_would_a_planner_recovery_help_condition_bt_node
       - nav2_would_a_smoother_recovery_help_condition_bt_node
@@ -71,7 +71,7 @@ bt_navigator:
       - nav2_goal_updated_condition_bt_node
       - nav2_globally_updated_goal_condition_bt_node
       - nav2_is_path_valid_condition_bt_node
-      - nav2_are_error_codes_active_condition_bt_node
+      - nav2_are_error_codes_present_condition_bt_node
       - nav2_would_a_controller_recovery_help_condition_bt_node
       - nav2_would_a_planner_recovery_help_condition_bt_node
       - nav2_would_a_smoother_recovery_help_condition_bt_node

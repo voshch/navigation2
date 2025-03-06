@@ -51,7 +51,7 @@ BtNavigator::BtNavigator(rclcpp::NodeOptions options)
     "nav2_goal_updated_condition_bt_node",
     "nav2_globally_updated_goal_condition_bt_node",
     "nav2_is_path_valid_condition_bt_node",
-    "nav2_are_error_codes_active_condition_bt_node",
+    "nav2_are_error_codes_present_condition_bt_node",
     "nav2_would_a_controller_recovery_help_condition_bt_node",
     "nav2_would_a_planner_recovery_help_condition_bt_node",
     "nav2_would_a_smoother_recovery_help_condition_bt_node",
