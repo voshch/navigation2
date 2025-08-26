@@ -23,6 +23,7 @@
 #include "nav2_util/node_utils.hpp"
 
 #include "nav2_collision_monitor/kinematics.hpp"
+#include "nav2_msgs/msg/collision_monitor_state.hpp"
 
 namespace nav2_collision_monitor
 {
@@ -66,6 +67,8 @@ CollisionMonitor::on_configure(const rclcpp_lifecycle::State & /*state*/)
     std::bind(&CollisionMonitor::cmdVelInCallback, this, std::placeholders::_1));
   cmd_vel_out_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
     cmd_vel_out_topic, 1);
+  state_pub_ = this->create_publisher<nav2_msgs::msg::CollisionMonitorState>(
+  "collision_monitor_state", 1);
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -77,6 +80,7 @@ CollisionMonitor::on_activate(const rclcpp_lifecycle::State & /*state*/)
 
   // Activating lifecycle publisher
   cmd_vel_out_pub_->on_activate();
+  state_pub_->on_activate();
 
   // Activating polygons
   for (std::shared_ptr<Polygon> polygon : polygons_) {
@@ -114,6 +118,7 @@ CollisionMonitor::on_deactivate(const rclcpp_lifecycle::State & /*state*/)
 
   // Deactivating lifecycle publishers
   cmd_vel_out_pub_->on_deactivate();
+  state_pub_->on_deactivate();
 
   // Destroying bond connection
   destroyBond();
@@ -128,6 +133,7 @@ CollisionMonitor::on_cleanup(const rclcpp_lifecycle::State & /*state*/)
 
   cmd_vel_in_sub_.reset();
   cmd_vel_out_pub_.reset();
+  state_pub_.reset();
 
   polygons_.clear();
   sources_.clear();
@@ -412,9 +418,12 @@ bool CollisionMonitor::processStopSlowdown(
     if (polygon->getActionType() == STOP) {
       // Setting up zero velocity for STOP model
       robot_action.action_type = STOP;
-      robot_action.req_vel.x = 0.0;
-      robot_action.req_vel.y = 0.0;
-      robot_action.req_vel.tw = 0.0;
+      
+      // COMMENTED OUT: If you want collision monitor to change velocity
+      // robot_action.req_vel.x = 0.0;
+      // robot_action.req_vel.y = 0.0;
+      // robot_action.req_vel.tw = 0.0;
+
       return true;
     } else {  // SLOWDOWN
       const Velocity safe_vel = velocity * polygon->getSlowdownRatio();
@@ -422,7 +431,10 @@ bool CollisionMonitor::processStopSlowdown(
       // chosen for previous shapes one
       if (safe_vel < robot_action.req_vel) {
         robot_action.action_type = SLOWDOWN;
-        robot_action.req_vel = safe_vel;
+
+        // COMMENTED OUT: If you want collision monitor to change velocity
+        // robot_action.req_vel = safe_vel;
+
         return true;
       }
     }
@@ -449,7 +461,10 @@ bool CollisionMonitor::processApproach(
     // chosen for previous shapes one
     if (safe_vel < robot_action.req_vel) {
       robot_action.action_type = APPROACH;
-      robot_action.req_vel = safe_vel;
+
+      // COMMENTED OUT: If you want collision monitor to change velocity
+      // robot_action.req_vel = safe_vel;
+
       return true;
     }
   }
@@ -460,27 +475,36 @@ bool CollisionMonitor::processApproach(
 void CollisionMonitor::printAction(
   const Action & robot_action, const std::shared_ptr<Polygon> action_polygon) const
 {
+  auto msg = std::make_unique<nav2_msgs::msg::CollisionMonitorState>();
+  msg->action_type = robot_action.action_type;
+
   if (robot_action.action_type == STOP) {
     RCLCPP_INFO(
       get_logger(),
       "Robot to stop due to %s polygon",
       action_polygon->getName().c_str());
+      msg->polygon_name = action_polygon->getName();
   } else if (robot_action.action_type == SLOWDOWN) {
     RCLCPP_INFO(
       get_logger(),
       "Robot to slowdown for %f percents due to %s polygon",
       action_polygon->getSlowdownRatio() * 100,
       action_polygon->getName().c_str());
+      msg->polygon_name = action_polygon->getName();
   } else if (robot_action.action_type == APPROACH) {
     RCLCPP_INFO(
       get_logger(),
       "Robot to approach for %f seconds away from collision",
       action_polygon->getTimeBeforeCollision());
+      msg->polygon_name = action_polygon->getName();
   } else {  // robot_action.action_type == DO_NOTHING
     RCLCPP_INFO(
       get_logger(),
       "Robot to continue normal operation");
+      msg->polygon_name = "";
   }
+
+  state_pub_->publish(std::move(msg));
 }
 
 void CollisionMonitor::publishPolygons() const
